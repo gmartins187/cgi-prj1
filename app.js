@@ -1,12 +1,17 @@
 import { loadShadersFromURLS, buildProgramFromSources, setupWebGL } from "../../libs/utils.js";
+import vec2 from "../../libs/MV.js";
 
 /** @type {HTMLCanvasElement} */
 let canvas;
 /** @type {WebGL2RenderingContext} */
 let gl;
 
+var sitesBuffer;   // buffer for the sites uniform
+
 let program;
 let quad_vao;       // the quad covering the whole viewport
+
+var sites = [vec2(-1.0, 0.0), vec2(1.0, 0.0)];
 
 
 // ---------------------------------------------------------------------------
@@ -14,13 +19,17 @@ let quad_vao;       // the quad covering the whole viewport
 // these functions. Mouse positions are in canvas pixels, with (0, 0) at the
 // top-left corner and y growing downwards.
 // ---------------------------------------------------------------------------
+function euclidian_distance(x1, y1, x2, y2){
+}
 
+//guilherme martins
 function on_mouse_down(x, y) {
 }
 
 function on_mouse_move(x, y) {
 }
 
+//rodrigo santos
 function on_mouse_up(x, y) {
 }
 
@@ -80,12 +89,18 @@ function setup(shaders) {
         -1, -1,     1, 1,     -1, 1,       // second triangle
     ]);
 
+    const sites = getUniformLocation(program, "u_sites");
+
     quad_vao = gl.createVertexArray();
     gl.bindVertexArray(quad_vao);
 
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, corners, gl.STATIC_DRAW);
+
+    sitesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, sitesBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, sites, gl.STATIC_DRAW);
 
     const a_position = gl.getAttribLocation(program, "a_position");
     gl.enableVertexAttribArray(a_position);
