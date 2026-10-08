@@ -1,5 +1,5 @@
 import { loadShadersFromURLS, buildProgramFromSources, setupWebGL } from "../../libs/utils.js";
-import vec2 from "../../libs/MV.js";
+import { vec2, flatten } from "../../libs/MV.js";
 
 /** @type {HTMLCanvasElement} */
 let canvas;
@@ -11,8 +11,11 @@ var sitesBuffer;   // buffer for the sites uniform
 let program;
 let quad_vao;       // the quad covering the whole viewport
 
-var sites = [vec2(-1.0, 0.0), vec2(1.0, 0.0)];
+const sites = [vec2(-1.0, 0.0), vec2(1.0, 0.0)];
 
+// Localizações dos uniforms
+let u_site_position_loc;
+let u_metric_loc;
 
 // ---------------------------------------------------------------------------
 // Input. The event listeners are already set up in setup_input(); fill in
@@ -24,6 +27,7 @@ function euclidian_distance(x1, y1, x2, y2){
 
 //guilherme martins
 function on_mouse_down(x, y) {
+
 }
 
 function on_mouse_move(x, y) {
@@ -31,6 +35,11 @@ function on_mouse_move(x, y) {
 
 //rodrigo santos
 function on_mouse_up(x, y) {
+    if (isDragging) {
+        isDragging = false;
+        hasDragged = false;
+    }
+
 }
 
 // dy > 0 when the wheel is scrolled down (towards the user)
@@ -89,8 +98,6 @@ function setup(shaders) {
         -1, -1,     1, 1,     -1, 1,       // second triangle
     ]);
 
-    const sites = getUniformLocation(program, "u_sites");
-
     quad_vao = gl.createVertexArray();
     gl.bindVertexArray(quad_vao);
 
@@ -98,15 +105,15 @@ function setup(shaders) {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, corners, gl.STATIC_DRAW);
 
-    sitesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, sitesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, sites, gl.STATIC_DRAW);
-
     const a_position = gl.getAttribLocation(program, "a_position");
     gl.enableVertexAttribArray(a_position);
     gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindVertexArray(null);
+
+    // Obter as locs dos Uniforms 
+    u_site_position_loc = gl.getUniformLocation(program, "u_site_position");
+    u_metric_loc = gl.getUniformLocation(program, "u_metric");
 
     resize();
     window.addEventListener("resize", resize);
@@ -123,6 +130,10 @@ function animate(timestamp) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.useProgram(program);
+
+    gl.uniform2fv(u_site_position_loc, flatten(sites));
+    gl.uniform1i(u_metric_loc, 0); // 0 = Euclidiana
+
     gl.bindVertexArray(quad_vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.bindVertexArray(null);
