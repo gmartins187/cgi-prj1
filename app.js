@@ -8,14 +8,22 @@ let gl;
 
 var sitesBuffer;   // buffer for the sites uniform
 
+var sites = [];
+var sitesColor = [];
+var n_sites;
+
 let program;
 let quad_vao;       // the quad covering the whole viewport
 
-const sites = [vec2(-1.0, 0.0), vec2(1.0, 0.0)];
 
 // Localizações dos uniforms
+let u_sites_color;
+let u_n_sites;
 let u_site_position_loc;
 let u_metric_loc;
+
+// var hasMoved;
+var moved;
 
 // ---------------------------------------------------------------------------
 // Input. The event listeners are already set up in setup_input(); fill in
@@ -25,21 +33,51 @@ let u_metric_loc;
 function euclidian_distance(x1, y1, x2, y2){
 }
 
+function is_in_site(vec){
+    for(let i=0;i<sites.length;i++){
+        if(vec2.equals(sites[i],vec)){return true;}
+    } 
+    return false;
+}
+
 //guilherme martins
 function on_mouse_down(x, y) {
+    if(is_in_site(vec2(x,y))){
 
+    } else{
+
+    }
 }
 
 function on_mouse_move(x, y) {
+    if(is_down){
+
+    } else{ //is_up
+
+    }
+}
+
+function random_site_color(){
+    return vec4(Math.random(), Math.random(), Math.random(), 1.0);
+}
+
+function add_site(x,y){
+    sites.push(vec2(x,y));
+    sitesColor.push(random_site_color());
+    n_sites+=1;
 }
 
 //rodrigo santos
 function on_mouse_up(x, y) {
-    if (isDragging) {
-        isDragging = false;
-        hasDragged = false;
+    //if (isDragging) {
+    //    isDragging = false;
+    //    hasDragged = false;
+    //}
+    if(moved){
+        
+    } else{ //hasnt moved
+        add_site(x,y);
     }
-
 }
 
 // dy > 0 when the wheel is scrolled down (towards the user)
@@ -101,8 +139,8 @@ function setup(shaders) {
     quad_vao = gl.createVertexArray();
     gl.bindVertexArray(quad_vao);
 
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    sitesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, sitesBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, corners, gl.STATIC_DRAW);
 
     const a_position = gl.getAttribLocation(program, "a_position");
@@ -112,6 +150,8 @@ function setup(shaders) {
     gl.bindVertexArray(null);
 
     // Obter as locs dos Uniforms 
+    u_n_sites = gl.getUniformLocation(program, "u_n_sites");
+    u_site_color = gl.getUniformLocation(program, "u_site_color");
     u_site_position_loc = gl.getUniformLocation(program, "u_site_position");
     u_metric_loc = gl.getUniformLocation(program, "u_metric");
 
@@ -131,6 +171,8 @@ function animate(timestamp) {
 
     gl.useProgram(program);
 
+    gl.uniform1i(u_n_sites, n_sites);
+    gl.uniform4f(u_sites_color, flatten(sitesColor));
     gl.uniform2fv(u_site_position_loc, flatten(sites));
     gl.uniform1i(u_metric_loc, 0); // 0 = Euclidiana
 
