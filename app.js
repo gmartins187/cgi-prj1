@@ -1,5 +1,5 @@
 import { loadShadersFromURLS, buildProgramFromSources, setupWebGL } from "../../libs/utils.js";
-import { vec2, flatten } from "../../libs/MV.js";
+import { vec2, vec3, flatten } from "../../libs/MV.js";
 
 /** @type {HTMLCanvasElement} */
 let canvas;
@@ -10,87 +10,102 @@ var sitesBuffer;   // buffer for the sites uniform
 
 var sites = [];
 var sitesColor = [];
-var n_sites;
+var n_sites = 0;
 
 let program;
 let quad_vao;       // the quad covering the whole viewport
 
 
 // Localizações dos uniforms
-let u_sites_color;
+let u_site_color;
 let u_n_sites;
 let u_site_position_loc;
 let u_metric_loc;
 
 // var hasMoved;
-var moved;
+var isDragging;
+var hasDragged;
+
+const TOLERANCE = 0.01;
 
 // ---------------------------------------------------------------------------
 // Input. The event listeners are already set up in setup_input(); fill in
 // these functions. Mouse positions are in canvas pixels, with (0, 0) at the
 // top-left corner and y growing downwards.
 // ---------------------------------------------------------------------------
-function euclidian_distance(x1, y1, x2, y2){
+function to_clip_space(x, y) {
+    return vec2(x / canvas.width * 2 - 1, 1 - y / canvas.height * 2);
 }
 
-function is_in_site(vec){
-    for(let i=0;i<sites.length;i++){
-        if(vec2.equals(sites[i],vec)){return true;}
-    } 
+function is_in_site(x,y){
+    const click_pos = to_clip_space(x, y);
+
+    for (let i = 0; i < n_sites; i++) {
+        let site = sites[i];
+        
+        let dx = click_pos[0] - site[0];
+        let dy = click_pos[1] - site[1];
+
+        if (Math.sqrt(dx*dx + dy*dy) < TOLERANCE) {
+            return true;
+        }
+    }
     return false;
 }
 
-//guilherme martins
 function on_mouse_down(x, y) {
-    if(is_in_site(vec2(x,y))){
-
-    } else{
-
+    if (is_in_site(x,y)) {
+        isDragging = true;
+        hasDragged = false;
     }
 }
 
 function on_mouse_move(x, y) {
-    if(is_down){
-
-    } else{ //is_up
-
+    if (isDragging) {
+        hasDragged = true;
+        // Update site position
+    
     }
 }
 
 function random_site_color(){
-    return vec4(Math.random(), Math.random(), Math.random(), 1.0);
+    return vec3(Math.random(), Math.random(), Math.random());
 }
 
 function add_site(x,y){
-    sites.push(vec2(x,y));
+    sites.push(to_clip_space(x, y));
     sitesColor.push(random_site_color());
-    n_sites+=1;
+    n_sites++;
 }
 
-//rodrigo santos
 function on_mouse_up(x, y) {
-    //if (isDragging) {
-    //    isDragging = false;
-    //    hasDragged = false;
-    //}
-    if(moved){
-        
-    } else{ //hasnt moved
+    if (isDragging) {
+        isDragging = false;
+        hasDragged = false;
+    } else {
         add_site(x,y);
     }
+    
 }
 
 // dy > 0 when the wheel is scrolled down (towards the user)
 function on_wheel(x, y, dy) {
+
 }
 
 function on_key(key) {
+    // Aqui coloquei o useProgram porque se não o programa não fazia nada ao clicar nas teclas.
+    gl.useProgram(program);
+
     switch (key) {
         case '1':       // Euclidean distance
+            gl.uniform1i(u_metric_loc, 0);
             break;
         case '2':       // Manhattan distance
+            gl.uniform1i(u_metric_loc, 1);
             break;
         case '3':       // Chebyshev distance
+            gl.uniform1i(u_metric_loc, 2);
             break;
         case 'b':       // toggle cell borders
             break;
@@ -161,6 +176,10 @@ function setup(shaders) {
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
+    // Tive de passar o uniform u_metric_loc para 0 (Euclidiana) aqui, porque se não o programa não desenha nada. Não sei porquê.
+    gl.useProgram(program);
+    gl.uniform1i(u_metric_loc, 0); // 0 = Euclidiana
+
     window.requestAnimationFrame(animate);
 }
 
@@ -172,9 +191,12 @@ function animate(timestamp) {
     gl.useProgram(program);
 
     gl.uniform1i(u_n_sites, n_sites);
-    gl.uniform4f(u_sites_color, flatten(sitesColor));
-    gl.uniform2fv(u_site_position_loc, flatten(sites));
-    gl.uniform1i(u_metric_loc, 0); // 0 = Euclidiana
+
+    // Protecao porque no inicio não existem sites.
+    if (n_sites > 0) {
+        gl.uniform3fv(u_site_color, flatten(sitesColor));
+        gl.uniform2fv(u_site_position_loc, flatten(sites));
+    }
 
     gl.bindVertexArray(quad_vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
