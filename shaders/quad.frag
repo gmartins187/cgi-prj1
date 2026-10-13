@@ -3,6 +3,7 @@
 precision highp float;
 
 const int MAX_SITES = 32;
+const float MAX_FLOAT = 1e30; // nova constante que nos da um valor alto
 
 uniform vec2  u_site_position[MAX_SITES];
 uniform vec3  u_site_color[MAX_SITES];
@@ -10,45 +11,41 @@ uniform int   u_n_sites;      // how many of MAX_SITES are actually in use
 uniform int   u_metric;       // 0 Euclidean, 1 Manhattan, 2 Chebyshev
 
 out vec4 color;
+
 in vec2 v_position;
 
+
 float calc_distance(vec2 p1, vec2 p2) {
-    if (u_metric == 0) { // Euclidean (o length e uma funcao do GLSL que calcula a distancia euclidiana)
+    if (u_metric == 0) { // 0 - Euclidiana
         return length(p1 - p2);
-    } else if (u_metric == 1) { // Manhattan
+    } else if (u_metric == 1) { // 1 - Manhattan
         return abs(p1.x - p2.x) + abs(p1.y - p2.y);
-    } else { // Chebyshev
+    } else { // 2 - Chebyshev
         return max(abs(p1.x - p2.x), abs(p1.y - p2.y));
     }
 }
 
-vec2 site_index(){
-    float min_distance = MAX_FLOAT; //nao sei oq é a variavel para max float
-    int site_index = 0;
-    for(int i=0;i<u_n_sites;i++){
-        if(min_distance < calc_distance(u_site_position[i], v_position)){
-            min_distance = calc_distance(u_site_position[i], v_position);
-            site_index=i;
+// Corrigi este metodo
+int site_index() {
+    float min_distance = MAX_FLOAT;
+    int index = 0;
+
+    for(int i = 0; i < u_n_sites; i++) {
+        float d = calc_distance(u_site_position[i], v_position);
+        
+        if(d < min_distance) {
+            min_distance = d;
+            index = i;
         }
     }
+    return index;
 }
 
 void main() {
-    // distancia de v_position para cada site
-    //float d1 = calc_distance(v_position, u_site_position[0]);
-    //float d2 = calc_distance(v_position, u_site_position[1]);
-    // próxima de 0, estamos na fronteira(linha branca)
-    //float diff = abs(d1 - d2);
-
-    //if (diff < 0.01) { 
-        // Linha branca da distancia igual
-        //color = vec4(1.0, 1.0, 1.0, 1.0);
-    //} else if (d1 < d2) {
-        // Site 0
-        //color = vec4(1.0, 0.0, 0.0, 1.0);
-    //} else {
-        // Site 1
-        //color = vec4(0.0, 1.0, 0.0, 1.0);
-    //}
-    color = u_site_color[site_index()];
+    // se nao existirem sites, pinta o fundo de preto. Se existirem, pinta a cor do site mais proximo.
+    if (u_n_sites == 0) {
+        color = vec4(0.0, 0.0, 0.0, 1.0);
+    } else {
+        color = vec4(u_site_color[site_index()], 1.0);
+    }
 }
