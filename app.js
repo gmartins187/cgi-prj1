@@ -21,6 +21,9 @@ let u_site_color;
 let u_n_sites;
 let u_site_position_loc;
 let u_metric_loc;
+let u_center;
+let u_scale;
+let u_world_half_width;
 
 // Novas variáveis para o ponto dos sites
 let u_is_marker_loc;
@@ -30,7 +33,13 @@ let sites_buffer;
 // Variaveis para o os mouse_down, mouse_move, mouse_up...
 var isDragging;
 var hasDragged;
+var down;
+var last;
 
+var center = [0.0, 0.0];
+var scale = 1.0;
+
+const WORLD_HALF_WIDTH = 10.0;
 const TOLERANCE = 0.01;
 
 // ---------------------------------------------------------------------------
@@ -64,17 +73,30 @@ function is_in_site(x,y){
 }
 
 function on_mouse_down(x, y) {
+    down=[x, y];
     if (is_in_site(x,y)) {
         isDragging = true;
         hasDragged = false;
     }
 }
 
+function pan(dx, dy) {
+    const world_units_per_pixel = (2 * WORLD_HALF_WIDTH * scale) / canvas.width;
+    center[0] -= dx * world_units_per_pixel;
+    center[1] += dy * world_units_per_pixel;
+}
+
 function on_mouse_move(x, y) {
     if (isDragging) {
-        hasDragged = true;
         // Update site position
-    
+        if (down === null) return;
+        const here = [x,y];
+
+        if (Math.hypot(here[0] - down[0], here[1] - down[1]) <= 4) return;
+
+        hasDragged = true;
+        pan(here[0] - last[0], here[1] - last[1]);
+        last = here;
     }
 }
 
@@ -99,7 +121,7 @@ function on_mouse_up(x, y) {
 
 // dy > 0 when the wheel is scrolled down (towards the user)
 function on_wheel(x, y, dy) {
-
+    scale = Math.min(4.0, Math.max(0.2, scale * (1 + dy / 1000)));
 }
 
 function on_key(key) {
@@ -179,6 +201,9 @@ function setup(shaders) {
     u_site_position_loc = gl.getUniformLocation(program, "u_site_position");
     u_metric_loc = gl.getUniformLocation(program, "u_metric");
     u_is_marker_loc = gl.getUniformLocation(program, "u_is_marker");
+    u_center = gl.getUniformLocation(program, "u_center");
+    u_scale = gl.getUniformLocation(program, "u_scale");
+    u_world_half_width = gl.getUniformLocation(program, "u_world_half_width");
 
 
     // Aqui temos de criar o VAO (VAO próprio para os pontos e para capturar a variável booleana) e o buffer para os sites.
@@ -213,15 +238,20 @@ function animate(timestamp) {
     gl.uniform1i(u_n_sites, n_sites);
 
     // Protecao porque no inicio não existem sites.
-    if (n_sites > 0) {
+    if (n_sites > 0){
         gl.uniform3fv(u_site_color, flatten(sitesColor));
         gl.uniform2fv(u_site_position_loc, flatten(sites));
     }
+    
+    gl.uniform1f(u_world_half_width, WORLD_HALF_WIDTH);
+    gl.uniform2fv(u_center, center);
+    gl.uniform1f(u_scale, scale);
+
 
     gl.bindVertexArray(quad_vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    if (n_sites > 0) {
+    if (n_sites > 0){
         gl.uniform1i(u_is_marker_loc, 1);
         gl.bindVertexArray(sites_vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, sites_buffer);
