@@ -25,7 +25,6 @@ float calc_distance(vec2 p1, vec2 p2) {
     }
 }
 
-// Corrigi este metodo
 int site_index() {
     float min_distance = MAX_FLOAT;
     int index = 0;
