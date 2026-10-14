@@ -22,7 +22,12 @@ let u_n_sites;
 let u_site_position_loc;
 let u_metric_loc;
 
-// var hasMoved;
+// Novas variáveis para o ponto dos sites
+let u_is_marker_loc;
+let sites_vao; 
+let sites_buffer;
+
+// Variaveis para o os mouse_down, mouse_move, mouse_up...
 var isDragging;
 var hasDragged;
 
@@ -33,8 +38,13 @@ const TOLERANCE = 0.01;
 // these functions. Mouse positions are in canvas pixels, with (0, 0) at the
 // top-left corner and y growing downwards.
 // ---------------------------------------------------------------------------
+
+// Função do exercício 12.
 function to_clip_space(x, y) {
-    return vec2(x / canvas.width * 2 - 1, 1 - y / canvas.height * 2);
+    return vec2(
+        (x / canvas.width) * 2 - 1,
+        1 - (y / canvas.height) * 2   // invertido: os pixels crescem para baixo, o espaço de recorte cresce para cima
+    );
 }
 
 function is_in_site(x,y){
@@ -85,7 +95,6 @@ function on_mouse_up(x, y) {
     } else {
         add_site(x,y);
     }
-    
 }
 
 // dy > 0 when the wheel is scrolled down (towards the user)
@@ -169,6 +178,17 @@ function setup(shaders) {
     u_site_color = gl.getUniformLocation(program, "u_site_color");
     u_site_position_loc = gl.getUniformLocation(program, "u_site_position");
     u_metric_loc = gl.getUniformLocation(program, "u_metric");
+    u_is_marker_loc = gl.getUniformLocation(program, "u_is_marker");
+
+
+    // Aqui temos de criar o VAO (VAO próprio para os pontos e para capturar a variável booleana) e o buffer para os sites.
+    sites_vao = gl.createVertexArray();
+    gl.bindVertexArray(sites_vao);
+    sites_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, sites_buffer);
+    gl.enableVertexAttribArray(a_position);
+    gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
 
     resize();
     window.addEventListener("resize", resize);
@@ -200,6 +220,15 @@ function animate(timestamp) {
 
     gl.bindVertexArray(quad_vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    if (n_sites > 0) {
+        gl.uniform1i(u_is_marker_loc, 1);
+        gl.bindVertexArray(sites_vao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, sites_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sites), gl.STATIC_DRAW); // Atualiza dados
+        gl.drawArrays(gl.POINTS, 0, n_sites); // Desenha pontos
+    }
+
     gl.bindVertexArray(null);
     gl.useProgram(null);
 }
