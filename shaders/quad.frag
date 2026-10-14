@@ -9,11 +9,11 @@ uniform vec2  u_site_position[MAX_SITES];
 uniform vec3  u_site_color[MAX_SITES];
 uniform int   u_n_sites;      // how many of MAX_SITES are actually in use
 uniform int   u_metric;       // 0 Euclidean, 1 Manhattan, 2 Chebyshev
+uniform bool u_is_marker; // verdadeiro se o site é um marcador
 
 out vec4 color;
 
 in vec2 v_position;
-
 
 float calc_distance(vec2 p1, vec2 p2) {
     if (u_metric == 0) { // 0 - Euclidiana
@@ -42,6 +42,10 @@ int site_index() {
 }
 
 void main() {
+    if (u_is_marker) {
+        color = vec4(0.0, 0.0, 0.0, 1.0); // preto para o marcador
+        return;
+    }
     // se nao existirem sites, pinta o fundo de preto. Se existirem, pinta a cor do site mais proximo.
     if (u_n_sites == 0) {
         color = vec4(0.0, 0.0, 0.0, 1.0);
