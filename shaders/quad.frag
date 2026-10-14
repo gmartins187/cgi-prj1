@@ -10,6 +10,8 @@ uniform vec3  u_site_color[MAX_SITES];
 uniform int   u_n_sites;      // how many of MAX_SITES are actually in use
 uniform int   u_metric;       // 0 Euclidean, 1 Manhattan, 2 Chebyshev
 uniform bool u_is_marker; // verdadeiro se o site é um marcador
+uniform vec2  u_center;
+uniform float u_scale;
 
 out vec4 color;
 
@@ -30,7 +32,7 @@ int site_index() {
     int index = 0;
 
     for(int i = 0; i < u_n_sites; i++) {
-        float d = calc_distance(u_site_position[i], v_position);
+        float d = calc_distance(u_site_position[i], v_position * u_scale + u_center);
         
         if(d < min_distance) {
             min_distance = d;

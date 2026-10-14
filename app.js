@@ -26,15 +26,15 @@ let u_scale;
 let u_world_half_width;
 
 // Novas variáveis para o ponto dos sites
-let u_is_marker_loc;
+let u_is_marker;
 let sites_vao; 
 let sites_buffer;
 
 // Variaveis para o os mouse_down, mouse_move, mouse_up...
-var isDragging;
-var hasDragged;
-var down;
-var last;
+var isDragging = false;
+var hasDragged = false;
+var down = null;
+var last = null;
 
 var center = [0.0, 0.0];
 var scale = 1.0;
@@ -73,11 +73,10 @@ function is_in_site(x,y){
 }
 
 function on_mouse_down(x, y) {
-    down=[x, y];
-    if (is_in_site(x,y)) {
-        isDragging = true;
-        hasDragged = false;
-    }
+    down = [x, y];
+    last = [x, y];
+    isDragging = true;
+    hasDragged = false;
 }
 
 function pan(dx, dy) {
@@ -87,17 +86,16 @@ function pan(dx, dy) {
 }
 
 function on_mouse_move(x, y) {
-    if (isDragging) {
-        // Update site position
-        if (down === null) return;
-        const here = [x,y];
+    if (!isDragging || down === null || last === null) return;
 
-        if (Math.hypot(here[0] - down[0], here[1] - down[1]) <= 4) return;
+    const here = [x,y];
 
-        hasDragged = true;
-        pan(here[0] - last[0], here[1] - last[1]);
-        last = here;
-    }
+    if (Math.hypot(here[0] - down[0], here[1] - down[1]) <= 4) return;
+
+    hasDragged = true;
+
+    pan(here[0] - last[0], here[1] - last[1]);
+    last = here;
 }
 
 function random_site_color(){
@@ -111,12 +109,17 @@ function add_site(x,y){
 }
 
 function on_mouse_up(x, y) {
-    if (isDragging) {
-        isDragging = false;
-        hasDragged = false;
-    } else {
+    const wasClick = isDragging && !hasDragged;
+    const insideCanvas = x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height;
+
+    if (wasClick && insideCanvas) {
         add_site(x,y);
     }
+
+    isDragging = false;
+    hasDragged = false;
+    down = null;
+    last = null;
 }
 
 // dy > 0 when the wheel is scrolled down (towards the user)
@@ -161,7 +164,7 @@ function resize() {
 function setup_input() {
     canvas.addEventListener("mousedown", (event) => on_mouse_down(event.offsetX, event.offsetY));
     canvas.addEventListener("mousemove", (event) => on_mouse_move(event.offsetX, event.offsetY));
-    window.addEventListener("mouseup", (event) => on_mouse_up(event.offsetX, event.offsetY));
+    canvas.addEventListener("mouseup", (event) => on_mouse_up(event.offsetX, event.offsetY));
     canvas.addEventListener("wheel", (event) => {
         on_wheel(event.offsetX, event.offsetY, event.deltaY);
         event.preventDefault();     // don't let the page scroll as well
@@ -200,7 +203,7 @@ function setup(shaders) {
     u_site_color = gl.getUniformLocation(program, "u_site_color");
     u_site_position_loc = gl.getUniformLocation(program, "u_site_position");
     u_metric_loc = gl.getUniformLocation(program, "u_metric");
-    u_is_marker_loc = gl.getUniformLocation(program, "u_is_marker");
+    u_is_marker = gl.getUniformLocation(program, "u_is_marker");
     u_center = gl.getUniformLocation(program, "u_center");
     u_scale = gl.getUniformLocation(program, "u_scale");
     u_world_half_width = gl.getUniformLocation(program, "u_world_half_width");
@@ -220,10 +223,6 @@ function setup(shaders) {
     setup_input();
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-    // Tive de passar o uniform u_metric_loc para 0 (Euclidiana) aqui, porque se não o programa não desenha nada. Não sei porquê.
-    gl.useProgram(program);
-    gl.uniform1i(u_metric_loc, 0); // 0 = Euclidiana
 
     window.requestAnimationFrame(animate);
 }
@@ -249,13 +248,14 @@ function animate(timestamp) {
 
 
     gl.bindVertexArray(quad_vao);
+    gl.uniform1i(u_is_marker, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     if (n_sites > 0){
-        gl.uniform1i(u_is_marker_loc, 1);
+        gl.uniform1i(u_is_marker, 1);
         gl.bindVertexArray(sites_vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, sites_buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sites), gl.STATIC_DRAW); // Atualiza dados
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(sites), gl.STATIC_DRAW); // Atualiza dados
         gl.drawArrays(gl.POINTS, 0, n_sites); // Desenha pontos
     }
 

@@ -11,8 +11,8 @@ uniform float u_scale;
 uniform float u_world_half_width;
 
 void main() {
-    gl_Position = vec4((a_position.xy - u_center) / (u_scale * u_world_half_width), 0.0, 1.0);
-    
+    gl_Position = vec4((a_position.xy - u_center) / u_scale, 0.0, 1.0);
+
     gl_PointSize = 8.0f;
     v_position = a_position;
 }
