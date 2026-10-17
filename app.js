@@ -33,14 +33,17 @@ let sites_buffer;
 // Variaveis para o os mouse_down, mouse_move, mouse_up...
 var isDragging = false;
 var hasDragged = false;
-var down = null;
-var last = null;
+var startPos = null;
+var lastPos = null;
+var draggedSiteIndex = -1; // -1 se nenhum site esta a ser arrastado
+
+var currentMousePos = { x: 0, y: 0 };
 
 var center = [0.0, 0.0];
-var scale = 1.0;
+var scale = 2.0;
 
 const WORLD_HALF_WIDTH = 10.0;
-const TOLERANCE = 0.01;
+const TOLERANCE = 0.03;
 
 // ---------------------------------------------------------------------------
 // Input. The event listeners are already set up in setup_input(); fill in
@@ -48,78 +51,132 @@ const TOLERANCE = 0.01;
 // top-left corner and y growing downwards.
 // ---------------------------------------------------------------------------
 
-// Função do exercício 12.
-function to_clip_space(x, y) {
-    return vec2(
-        (x / canvas.width) * 2 - 1,
-        1 - (y / canvas.height) * 2   // invertido: os pixels crescem para baixo, o espaço de recorte cresce para cima
-    );
+// Função do exercício 12. teve de ser alterada para o espaço do mundo, porque o espaço do clip nao fazia os pontos mexer.
+function to_world_space(x, y) {
+    // 1. Obter o espaço de recorte (-1 a 1)
+    const clip_x = (x / canvas.width) * 2 - 1;
+    const clip_y = 1 - (y / canvas.height) * 2;
+
+    // 2. Aplicar a transformação da câmara (Centro e Zoom)
+    const world_x = center[0] + clip_x * WORLD_HALF_WIDTH * scale;
+    const world_y = center[1] + clip_y * WORLD_HALF_WIDTH * scale;
+
+    return vec2(world_x, world_y);
 }
 
-function is_in_site(x,y){
-    const click_pos = to_clip_space(x, y);
+function update_site_counter() {
+    const counterDisplay = document.getElementById('site-count');
+    if (counterDisplay) {
+        counterDisplay.innerText = n_sites;
+    }
+}
+
+function is_in_site(x, y) {
+    const click_world = to_world_space(x, y);
+    const world_tolerance = TOLERANCE * WORLD_HALF_WIDTH * scale;
 
     for (let i = 0; i < n_sites; i++) {
         let site = sites[i];
         
-        let dx = click_pos[0] - site[0];
-        let dy = click_pos[1] - site[1];
+        let dx = click_world[0] - site[0];
+        let dy = click_world[1] - site[1];
 
-        if (Math.sqrt(dx*dx + dy*dy) < TOLERANCE) {
-            return true;
+        if (Math.sqrt(dx*dx + dy*dy) < world_tolerance) {
+            return i; // Retorna o índice do site que está dentro da tolerância
         }
     }
-    return false;
+    return -1;
 }
 
 function on_mouse_down(x, y) {
-    down = [x, y];
-    last = [x, y];
     isDragging = true;
     hasDragged = false;
+    if (n_sites > 0) {
+        draggedSiteIndex = is_in_site(x, y);
+    }
+
+    if (draggedSiteIndex !== -1) {
+        sites[draggedSiteIndex] = to_world_space(x, y);
+    }
+    
+    startPos = { x: x, y: y };
+    lastPos = { x: x, y: y };
 }
 
 function pan(dx, dy) {
-    const world_units_per_pixel = (2 * WORLD_HALF_WIDTH * scale) / canvas.width;
-    center[0] -= dx * world_units_per_pixel;
-    center[1] += dy * world_units_per_pixel;
+    const units_per_pixel_x = (2 * WORLD_HALF_WIDTH * scale) / canvas.width;
+    const units_per_pixel_y = (2 * WORLD_HALF_WIDTH * scale) / canvas.height;
+    
+    center[0] -= dx * units_per_pixel_x;
+    center[1] += dy * units_per_pixel_y;
 }
 
 function on_mouse_move(x, y) {
-    if (!isDragging || down === null || last === null) return;
+    // Memorizar a posição atual para o teclado poder usar
+    currentMousePos = { x: x, y: y };
 
-    const here = [x,y];
+    if (isDragging) {
+        const dx_total = x - startPos.x;
+        const dy_total = y - startPos.y;
 
-    if (Math.hypot(here[0] - down[0], here[1] - down[1]) <= 4) return;
+        if (!hasDragged && Math.sqrt(dx_total*dx_total + dy_total*dy_total) > 4) {
+            hasDragged = true;
+        }
 
-    hasDragged = true;
 
-    pan(here[0] - last[0], here[1] - last[1]);
-    last = here;
+        if (hasDragged) {
+            if (draggedSiteIndex !== -1) {
+                sites[draggedSiteIndex] = to_world_space(x, y);
+            } else if (isDragging) {
+                const dx = x - lastPos.x;
+                const dy = y - lastPos.y;
+            
+                pan(dx, dy);
+            }
+
+            lastPos = { x: x, y: y };
+        }
+    }
 }
 
 function random_site_color(){
-    return vec3(Math.random(), Math.random(), Math.random());
+    const x = Math.random();
+    const y = Math.random();
+    const z = Math.random();
+
+    if (x < 0.4) {
+        return vec3(x + 0.6, y, z);
+    }
+    if (y < 0.4) {
+        return vec3(x, y + 0.6, z);
+    }
+    if (z < 0.4) {
+        return vec3(x, y, z + 0.6);
+    }
+    
+    return vec3(x, y, z);  
 }
 
-function add_site(x,y){
-    sites.push(to_clip_space(x, y));
+function add_site(x, y) {
+    sites.push(to_world_space(x, y));
     sitesColor.push(random_site_color());
     n_sites++;
+
+    update_site_counter();
 }
 
 function on_mouse_up(x, y) {
     const wasClick = isDragging && !hasDragged;
     const insideCanvas = x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height;
 
-    if (wasClick && insideCanvas) {
+    if (wasClick && insideCanvas && draggedSiteIndex == -1 && n_sites < 32) {
         add_site(x,y);
     }
 
     isDragging = false;
     hasDragged = false;
-    down = null;
-    last = null;
+    lastPos = null;
+    draggedSiteIndex = -1;
 }
 
 // dy > 0 when the wheel is scrolled down (towards the user)
@@ -144,6 +201,17 @@ function on_key(key) {
         case 'b':       // toggle cell borders
             break;
         case 'x':       // remove the site under the pointer
+            // Procura o índice do site na posição atual do rato
+            const indexToRemove = is_in_site(currentMousePos.x, currentMousePos.y);
+            
+            if (indexToRemove !== -1) {
+                // Remove 1 elemento dos arrays a partir da posição "indexToRemove"
+                sites.splice(indexToRemove, 1);
+                sitesColor.splice(indexToRemove, 1);
+                n_sites--;
+
+                update_site_counter();
+            }
             break;
         case 'm':       // switch rendering technique / split view
             break;
@@ -258,7 +326,6 @@ function animate(timestamp) {
         gl.bufferData(gl.ARRAY_BUFFER, flatten(sites), gl.STATIC_DRAW); // Atualiza dados
         gl.drawArrays(gl.POINTS, 0, n_sites); // Desenha pontos
     }
-
     gl.bindVertexArray(null);
     gl.useProgram(null);
 }
