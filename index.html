@@ -7,8 +7,25 @@
 </head>
 
 <body>
+<div id="controls-menu">
+    <div class="menu-header">
+        <div class="pulse-dot"></div>
+        <h3>Controlos Voronoi</h3>
+    </div>
+    <ul class="controls-list">
+        <li><kbd>Clique</kbd> <span>Adicionar marcador</span></li>
+        <li><kbd>Arrastar</kbd> <span>Mover marcador ou câmara</span></li>
+        <li><kbd>Roda</kbd> <span>Zoom in / out</span></li>
+        <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <span>Mudar Métrica (Distância)</span></li>
+        <li><kbd>X</kbd> <span>Remover marcador sob o rato</span></li>
+    </ul>
+    <div class="site-counter">Sites: <span id="site-count">0</span></div>
+</div>
+
     <script type="module" src="./app.js"></script>
     <canvas id="gl-canvas"></canvas>
 </body>
+
+
 
 </html>
