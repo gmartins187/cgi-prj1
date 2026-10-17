@@ -14,3 +14,110 @@ body {
 canvas {
     display: block;     /* no gap under the canvas, as an inline element would leave */
 }
+
+#controls-menu {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    /* Efeito Glassmorphism (Vidro) */
+    background: rgba(18, 18, 24, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    
+    color: #e2e8f0;
+    font-family: system-ui, -apple-system, sans-serif;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    pointer-events: none; /* Mantém-se "fantasma" para os cliques do WebGL */
+    z-index: 10;
+    min-width: 280px;
+}
+
+/* Cabeçalho com o pontinho a piscar */
+.menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Espaça o título e o contador */
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+}
+
+/* Estilo do crachá do contador */
+.site-counter {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4ade80; /* Verde a combinar com o ponto a piscar */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    letter-spacing: 0.5px;    
+}
+
+.site-counter span {
+    color: #ffffff;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #4ade80; /* Verde vivo */
+    border-radius: 50%;
+    margin-right: 12px;
+    box-shadow: 0 0 10px #4ade80;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+
+.menu-header h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #94a3b8;
+}
+
+/* Lista de comandos */
+.controls-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.controls-list li {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+}
+
+.controls-list li span {
+    margin-left: 12px;
+    color: #cbd5e1;
+}
+
+/* Estilo das teclas/botões */
+kbd {
+    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    border: 1px solid #475569;
+    border-bottom-width: 3px;
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #f8fafc;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+    margin-right: 1px;
+}
