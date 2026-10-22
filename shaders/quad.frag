@@ -45,6 +45,28 @@ int site_index(vec2 current_world_pos, out float out_min_distance) {
     return index;
 }
 
+bool is_border(vec2 world_position){
+    float distances[MAX_SITES];
+    for(int i = 0; i < u_n_sites; i++) {
+        distances[i] = calc_distance(world_position, u_site_position[i]);
+    }
+
+    float d1 = MAX_FLOAT;
+    float d2 = MAX_FLOAT;
+
+    for(int i = 0; i < u_n_sites; i++) {
+        if (distances[i] < d1) {
+            d2 = d1;
+            d1 = distances[i];
+        } else if (distances[i] < d2) {
+            d2 = distances[i];
+        }
+    }
+    
+    if(abs(d1-d2)<0.1){return true;}    
+    return false;
+}
+
 void main() {
     if (u_is_marker) {
         color = vec4(0.0, 0.0, 0.0, 1.0);
@@ -60,17 +82,22 @@ void main() {
             u_center.y + v_position.y * u_world_half_width * u_scale
         );
 
-        float dist_ao_centro;
-        int index = site_index(world_pos, dist_ao_centro);
+        bool is_border_site = is_border(world_pos);
+        if(is_border_site){color=vec4(0.0,0.0,0.0,0.0);}
+        else{
 
-        // 2. Obter a cor original do site
-        vec3 base_color = u_site_color[index];
+            float dist_ao_centro;
+            int index = site_index(world_pos, dist_ao_centro);
+            
+            // 2. Obter a cor original do site
+            vec3 base_color = u_site_color[index];
 
-        // 3. EFEITO FADE: 
-        // A função exp() começa em 1.0 (no centro) e desce suavemente para 0.0
-        // Quanto maior for o multiplicador (ex: 0.3), mais rápido o escuro aperta.
-        float intensidade = exp(-dist_ao_centro * 0.02);
+            // 3. EFEITO FADE: 
+            // A função exp() começa em 1.0 (no centro) e desce suavemente para 0.0
+            // Quanto maior for o multiplicador (ex: 0.3), mais rápido o escuro aperta.
+            float intensidade = exp(-dist_ao_centro * 0.02);
 
-        color = vec4(base_color * intensidade, 1.0);
+            color = vec4(base_color * intensidade, 1.0);
+        }
     }
 }
