@@ -67,9 +67,23 @@ bool is_border(vec2 world_position){
     return false;
 }
 
+
+bool is_site_boder(vec2 world_position){
+    float min_distance = MAX_FLOAT;
+    for(int i = 0; i < u_n_sites; i++) {
+        float d = calc_distance(u_site_position[i], world_position);
+        if(d < min_distance) {
+            min_distance = d;
+        }
+    }
+
+    if(min_distance<0.4 && min_distance>0.2){return true;}
+    return false;
+}
+
 void main() {
     if (u_is_marker) {
-        color = vec4(0.0, 0.0, 0.0, 1.0);
+        //color = vec4(0.0, 0.0, 0.0, 0.0);
         return;
     }
 
@@ -82,9 +96,12 @@ void main() {
             u_center.y + v_position.y * u_world_half_width * u_scale
         );
 
-        bool is_border_site = is_border(world_pos);
-        if(is_border_site){color=vec4(0.0,0.0,0.0,0.0);}
-        else{
+
+        if(is_border(world_pos)){
+            color=vec4(0.0,0.0,0.0,0.0);
+        }else if(is_site_boder(world_pos)){
+            color=vec4(0.93f, 0.08f, 0.08f, 1.0f);
+        } else{ //sites color
 
             float dist_ao_centro;
             int index = site_index(world_pos, dist_ao_centro);

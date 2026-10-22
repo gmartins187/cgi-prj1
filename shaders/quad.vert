@@ -18,7 +18,7 @@ void main() {
         float clip_y = (a_position.y - u_center.y) / (u_world_half_width * u_scale);
         
         gl_Position = vec4(clip_x, clip_y, 0.0, 1.0);
-        gl_PointSize = 8.0;
+        //gl_PointSize = 20.0; // Set the size of the point
         
     } else {
         v_position = a_position;
