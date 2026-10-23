@@ -10,20 +10,19 @@ out vec2 v_position;
 uniform vec2 u_center;
 uniform float u_scale;
 uniform float u_world_half_width;
+uniform float u_aspect;
 uniform bool u_is_marker;
 
 void main() {
     if (u_is_marker) {
         float clip_x = (a_position.x - u_center.x) / (u_world_half_width * u_scale);
-        float clip_y = (a_position.y - u_center.y) / (u_world_half_width * u_scale);
+        float clip_y = (a_position.y - u_center.y) / (u_world_half_width * u_scale * u_aspect);
         
         gl_Position = vec4(clip_x, clip_y, 0.0, 1.0);
-        //gl_PointSize = 20.0; // Set the size of the point
+        // gl_PointSize = 20.0; // Set the size of the point
         
     } else {
         v_position = a_position;
         gl_Position = vec4(a_position, 0.0, 1.0);
     }
 }
-
-
