@@ -14,6 +14,7 @@ uniform bool u_is_marker; // verdadeiro se o site é um marcador
 uniform vec2  u_center;
 uniform float u_scale;
 uniform float u_world_half_width;
+uniform float u_aspect;
 uniform int u_toggle_borders;
 
 out vec4 color;
@@ -69,71 +70,54 @@ bool is_border(vec2 world_position){
 }
 
 
-int is_site_boder(vec2 world_position){
+int is_site_border(vec2 world_position){
     float min_distance = MAX_FLOAT;
     for(int i = 0; i < u_n_sites; i++) {
-        float d = calc_distance(u_site_position[i], world_position);
+        float d = length(u_site_position[i] - world_position);
         if(d < min_distance) {
             min_distance = d;
         }
     }
 
-    if(min_distance<0.3 && min_distance>0.15){
+    if(min_distance<0.2 && min_distance>0.1){
         return 2;
-    } else if(min_distance<0.15){
+    } else if(min_distance<0.1){
         return 1;
-    } else return 0;
+    } else 
+        return 0;
 }
 
-void main() {
-    if (u_is_marker) {
-        //color = vec4(0.0, 0.0, 0.0, 0.0);
-        return;
-    }
-
+void main() {   
     if (u_n_sites == 0) {
         color = vec4(0.0, 0.0, 0.0, 1.0);
     } else {
         // Converter a coordenada do píxel atual do ecrã para o Mundo Infinito
         vec2 world_pos = vec2(
             u_center.x + v_position.x * u_world_half_width * u_scale,
-            u_center.y + v_position.y * u_world_half_width * u_scale
+            u_center.y + v_position.y * u_world_half_width * u_scale * u_aspect
         );
 
-        if(u_toggle_borders==1){
-            if(is_site_boder(world_pos)==2){
-                color=vec4(1.0f);
-            }else if(is_site_boder(world_pos)==1){
-                color=vec4(0.02f, 0.02f, 0.02f, 1.0f);
-            }else {
-                float dist_ao_centro;
-                int index = site_index(world_pos, dist_ao_centro);
-                vec3 base_color = u_site_color[index];
-                float intensidade = exp(-dist_ao_centro * 0.02);
-                color = vec4(base_color * intensidade, 1.0);
-            }
-        }else{
-            if(is_border(world_pos)){
-                color=vec4(0.0,0.0,0.0,0.0);
-            } else if(is_site_boder(world_pos)==2){
-                color=vec4(1.0f);
-            } else if(is_site_boder(world_pos)==1){
-                color=vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            } else{ //sites color
+        if(is_border(world_pos) && u_toggle_borders == 1){
+            // cor da linha entre sites
+            color=vec4(1.0f);
+        } else if(is_site_border(world_pos)==2){
+            // Cor do circulo a volta do ponto do site
+            color=vec4(1.0f);
+        } else if(is_site_border(world_pos)==1){
+            // Cor do ponto do site
+            color=vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        } else{ //sites area color
 
-                float dist_ao_centro;
-                int index = site_index(world_pos, dist_ao_centro);
+            float dist_ao_centro;
+            // 1. Obter o index do site para depois obter cor
+            int index = site_index(world_pos, dist_ao_centro);
 
-                // 2. Obter a cor original do site
-                vec3 base_color = u_site_color[index];
+            // 2. Obter a cor original do site
+            vec3 base_color = u_site_color[index];
 
-                // 3. EFEITO FADE: 
-                // A função exp() começa em 1.0 (no centro) e desce suavemente para 0.0
-                // Quanto maior for o multiplicador (ex: 0.3), mais rápido o escuro aperta.
-                float intensidade = exp(-dist_ao_centro * 0.02);
-
-                color = vec4(base_color * intensidade, 1.0);
-            }
+            // 3. EFEITO FADE: 
+            float intensidade = exp(-dist_ao_centro * 0.02);
+            color = vec4(base_color * intensidade, 1.0);
         }
     }
 }
