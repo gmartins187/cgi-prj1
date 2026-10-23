@@ -24,6 +24,7 @@ let u_metric_loc;
 let u_center;
 let u_scale;
 let u_world_half_width;
+let u_aspect;
 
 // Novas variáveis para o ponto dos sites
 let u_is_marker;
@@ -58,9 +59,11 @@ function to_world_space(x, y) {
     const clip_x = (x / canvas.width) * 2 - 1;
     const clip_y = 1 - (y / canvas.height) * 2;
 
+    const aspect = canvas.height / canvas.width;
+
     // 2. Aplicar a transformação da câmara (Centro e Zoom)
     const world_x = center[0] + clip_x * WORLD_HALF_WIDTH * scale;
-    const world_y = center[1] + clip_y * WORLD_HALF_WIDTH * scale;
+    const world_y = center[1] + clip_y * WORLD_HALF_WIDTH * scale * aspect;
 
     return vec2(world_x, world_y);
 }
@@ -105,11 +108,10 @@ function on_mouse_down(x, y) {
 }
 
 function pan(dx, dy) {
-    const units_per_pixel_x = (2 * WORLD_HALF_WIDTH * scale) / canvas.width;
-    const units_per_pixel_y = (2 * WORLD_HALF_WIDTH * scale) / canvas.height;
+    const units_per_pixel = (2 * WORLD_HALF_WIDTH * scale) / canvas.width;
     
-    center[0] -= dx * units_per_pixel_x;
-    center[1] += dy * units_per_pixel_y;
+    center[0] -= dx * units_per_pixel;
+    center[1] += dy * units_per_pixel;
 }
 
 function nearest_site_index(x, y) {
@@ -301,7 +303,7 @@ function setup(shaders) {
     u_center = gl.getUniformLocation(program, "u_center");
     u_scale = gl.getUniformLocation(program, "u_scale");
     u_world_half_width = gl.getUniformLocation(program, "u_world_half_width");
-
+    u_aspect = gl.getUniformLocation(program, "u_aspect");
 
     // Aqui temos de criar o VAO (VAO próprio para os pontos e para capturar a variável booleana) e o buffer para os sites.
     sites_vao = gl.createVertexArray();
@@ -337,6 +339,7 @@ function animate(timestamp) {
     }
     
     gl.uniform1f(u_world_half_width, WORLD_HALF_WIDTH);
+    gl.uniform1f(u_aspect, canvas.height / canvas.width);
     gl.uniform2fv(u_center, center);
     gl.uniform1f(u_scale, scale);
 
