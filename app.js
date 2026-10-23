@@ -36,6 +36,7 @@ var hasDragged = false;
 var startPos = null;
 var lastPos = null;
 var draggedSiteIndex = -1; // -1 se nenhum site esta a ser arrastado
+var toggle_borders = 0; // 0 - borders off, 1 - borders on
 
 var currentMousePos = { x: 0, y: 0 };
 
@@ -109,6 +110,24 @@ function pan(dx, dy) {
     
     center[0] -= dx * units_per_pixel_x;
     center[1] += dy * units_per_pixel_y;
+}
+
+function nearest_site_index(x, y) {
+    let min_distance_site = Infinity;
+    let nearest_index = -1;
+    for (let i = 0; i < n_sites; i++) {
+        let site = sites[i];
+        let click_world = to_world_space(x, y);
+        
+        let dx = click_world[0] - site[0];
+        let dy = click_world[1] - site[1];
+
+        if(Math.sqrt(dx*dx + dy*dy) < min_distance_site) {
+            min_distance_site = Math.sqrt(dx*dx + dy*dy);
+            nearest_index = i;
+        }
+    }
+    return nearest_index;
 }
 
 function on_mouse_move(x, y) {
@@ -199,10 +218,17 @@ function on_key(key) {
             gl.uniform1i(u_metric_loc, 2);
             break;
         case 'b':       // toggle cell borders
+            if(toggle_borders==0){
+                gl.uniform1i(gl.getUniformLocation(program, "u_toggle_borders"), 1);
+                toggle_borders=1;
+            }else {
+                gl.uniform1i(gl.getUniformLocation(program, "u_toggle_borders"), 0);
+                toggle_borders=0;
+            }
             break;
         case 'x':       // remove the site under the pointer
             // Procura o índice do site na posição atual do rato
-            const indexToRemove = is_in_site(currentMousePos.x, currentMousePos.y);
+            const indexToRemove = nearest_site_index(currentMousePos.x, currentMousePos.y);
             
             if (indexToRemove !== -1) {
                 // Remove 1 elemento dos arrays a partir da posição "indexToRemove"
