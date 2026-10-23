@@ -78,10 +78,9 @@ int is_site_border(vec2 world_position){
             min_distance = d;
         }
     }
-
-    if(min_distance<0.2 && min_distance>0.1){
+    if(min_distance < 0.15 && min_distance > 0.07){
         return 2;
-    } else if(min_distance<0.1){
+    } else if(min_distance < 0.24 && min_distance > 0.15){
         return 1;
     } else 
         return 0;
