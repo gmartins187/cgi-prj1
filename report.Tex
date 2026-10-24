@@ -1,0 +1,159 @@
+
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[portuguese]{babel}
+\usepackage{lmodern,amsmath,amssymb,graphicx,geometry,float,caption,subcaption,microtype,xcolor}
+
+\geometry{margin=1.8cm,top=1.7cm,bottom=1.7cm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\captionsetup{font=small}
+
+\title{
+    \vspace{-1.3cm}
+    \textbf{Projeto 1 - Diagramas de Voronoi}\\
+    \large Implementação interativa com WebGL2 e Fragment Shader
+}
+
+\author{
+    \textbf{Elementos do grupo:}\\
+    71003 Guilherme Martins | 65745 Rodrigo Santos\\
+    \small Computação Gráfica e Interfaces
+}
+
+\date{Outubro de 2026}
+
+\begin{document}
+
+\maketitle
+\vspace{-0.7cm}
+
+\section{Introdução}
+
+Um diagrama de Voronoi divide o plano em regiões, designadas \emph{células}, associadas a um conjunto de pontos de referência (\emph{sites}). Cada célula contém os pontos do plano cuja distância ao respetivo site é menor ou igual à distância aos restantes.
+
+Para um conjunto $S=\{p_1,\ldots,p_n\}$, a célula de $p_i$ é
+
+\begin{equation}
+V(p_i)=\{x\in\mathbb{R}^2:\ d(x,p_i)\leq d(x,p_j),\ \forall j\neq i\}.
+\end{equation}
+
+Neste projeto foi desenvolvida uma aplicação interativa em WebGL2 que representa estas regiões através de pesquisa no \emph{fragment shader}. O utilizador pode adicionar, mover e remover sites, alterar a vista e selecionar três métricas de distância.
+
+As figuras apresentam resultados obtidos com três sites e diferentes configurações de visualização.
+
+\section{Arquitetura e cálculo no fragment shader}
+
+A aplicação desenha um quadrilátero que ocupa toda a área do \emph{canvas}. Para cada fragmento, o shader converte a sua posição para coordenadas do mundo, tendo em conta o centro da câmara, a escala e a proporção da janela.
+
+Em seguida, percorre os sites ativos, calcula a distância a cada um e identifica o de menor distância. A cor final provém da cor associada a esse site.
+
+A implementação suporta até 32 sites por meio de \emph{uniform arrays} com posições e cores.
+
+A intensidade da cor diminui suavemente com a distância ao site, utilizando um fator exponencial
+
+\[
+I=\exp(-\varepsilon d_1)
+\]
+
+em que $d_1$ é a menor distância calculada.
+
+Os marcadores são representados por pequenos anéis, permitindo identificar visualmente os pontos de referência.
+
+\section{Métricas de distância}
+
+Para $p=(p_x,p_y)$ e $q=(q_x,q_y)$, foram implementadas as seguintes funções:
+
+\begin{align}
+d_E(p,q)&=\sqrt{(p_x-q_x)^2+(p_y-q_y)^2},\\
+d_M(p,q)&=|p_x-q_x|+|p_y-q_y|,\\
+d_C(p,q)&=\max\bigl(|p_x-q_x|,|p_y-q_y|\bigr).
+\end{align}
+
+A seleção é efetuada pelas teclas \texttt{1}, \texttt{2} e \texttt{3}, respetivamente.
+
+As mesmas posições dos sites originam fronteiras diferentes, uma vez que o conceito de proximidade depende da métrica escolhida.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.59\linewidth]{Screenshot 2026-10-24 at 21.48.27.png}
+    \caption{Diagrama com três sites, usando distância Euclidiana e bordas desativadas.}
+    \label{fig:eucl}
+\end{figure}
+
+\section{Deteção e visualização das bordas}
+
+Para evidenciar a separação entre células, o shader procura as duas menores distâncias a cada fragmento, $d_1$ e $d_2$.
+
+Uma região é assinalada como fronteira quando
+
+\begin{equation}
+|d_1-d_2|<\varepsilon.
+\end{equation}
+
+Na implementação apresentada, foi usado $\varepsilon=0.1$ em unidades do mundo, e a tecla \texttt{b} ativa ou desativa as linhas brancas.
+
+Este valor fixo é uma limitação: a espessura aparente das bordas varia com o zoom, pelo que uma melhoria futura seria adaptar o limiar à escala e à resolução do canvas.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.59\linewidth]{Screenshot 2026-10-24 at 21.48.30.png}
+    \caption{Mesma configuração Euclidiana, agora com a deteção de bordas ativada.}
+    \label{fig:borders}
+\end{figure}
+
+\section{Resultados e comparação visual}
+
+As Figuras~\ref{fig:man} e~\ref{fig:cheb} mostram que a alteração da métrica modifica a forma das regiões sem exigir a movimentação dos sites.
+
+Na distância Manhattan, os segmentos podem apresentar orientações horizontais, verticais e diagonais; na Chebyshev, observam-se também fronteiras com orientações características da norma do máximo.
+
+A figura adicional mostra uma configuração distinta dos sites, ilustrando a atualização do diagrama.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{.40\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Screenshot 2026-10-24 at 21.48.40.png}
+        \caption{Métrica Manhattan.}
+        \label{fig:man}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{.40\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Screenshot 2026-10-24 at 21.48.47.png}
+        \caption{Métrica Chebyshev.}
+        \label{fig:cheb}
+    \end{subfigure}
+    \caption{Comparação das formas das células com três sites e bordas visíveis.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.53\linewidth]{Screenshot 2026-10-24 at 21.49.01.png}
+    \caption{Outra disposição dos três sites, demonstrando a dependência do diagrama em relação às posições dos marcadores.}
+\end{figure}
+
+\section{Interação com o utilizador}
+
+A interface permite adicionar um site com um clique numa área vazia, arrastar um marcador existente para alterar a sua posição, deslocar a câmara ao arrastar uma zona livre e ampliar ou reduzir a vista com a roda do rato.
+
+As teclas \texttt{1}, \texttt{2} e \texttt{3} mudam a métrica, \texttt{b} controla as bordas e \texttt{x} remove o site mais próximo da posição do ponteiro.
+
+Um painel de ajuda apresenta os comandos e o número atual de sites.
+
+A conversão entre coordenadas do ecrã e do mundo mantém a interação coerente com o pan, o zoom e a proporção da janela.
+
+O diagrama é recalculado no shader sempre que as posições ou os parâmetros de visualização mudam.
+
+\section{Conclusão}
+
+Foi construída uma visualização interativa de diagramas de Voronoi com três métricas e destaque opcional das fronteiras.
+
+As capturas demonstram a associação de cores aos sites e as mudanças geométricas provocadas pela seleção da distância.
+
+Como trabalho futuro, destaca-se a adaptação da espessura das bordas ao zoom, bem como a realização de testes sistemáticos com o limite máximo de sites e diferentes resoluções.
+
+\end{document}
