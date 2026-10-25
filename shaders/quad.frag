@@ -32,13 +32,16 @@ float calc_distance(vec2 p1, vec2 p2) {
 }
 
 int site_index(vec2 current_world_pos, out float out_min_distance) {
+    const float TIE_EPSILON = 0.0001;
     float min_distance = MAX_FLOAT;
     int index = 0;
 
     for(int i = 0; i < u_n_sites; i++) {
         float d = calc_distance(u_site_position[i], current_world_pos);
         
-        if(d < min_distance) {
+        // Ignorar diferenças causadas apenas pela precisão dos floats.
+        // Num empate, mantém-se o site com o menor índice.
+        if(d < min_distance - TIE_EPSILON) {
             min_distance = d;
             index = i;
         }
@@ -47,26 +50,19 @@ int site_index(vec2 current_world_pos, out float out_min_distance) {
     return index;
 }
 
-bool is_border(vec2 world_position){
-    float distances[MAX_SITES];
-    for(int i = 0; i < u_n_sites; i++) {
-        distances[i] = calc_distance(world_position, u_site_position[i]);
-    }
+bool is_border(vec2 world_position, vec2 pixel_x, vec2 pixel_y) {
+    float ignored;
 
-    float d1 = MAX_FLOAT;
-    float d2 = MAX_FLOAT;
+    int center = site_index(world_position, ignored);
+    int left   = site_index(world_position - pixel_x, ignored);
+    int right  = site_index(world_position + pixel_x, ignored);
+    int down   = site_index(world_position - pixel_y, ignored);
+    int up     = site_index(world_position + pixel_y, ignored);
 
-    for(int i = 0; i < u_n_sites; i++) {
-        if (distances[i] < d1) {
-            d2 = d1;
-            d1 = distances[i];
-        } else if (distances[i] < d2) {
-            d2 = distances[i];
-        }
-    }
-    
-    if(abs(d1-d2)<0.1){return true;}    
-    return false;
+    return center != left  ||
+           center != right ||
+           center != down  ||
+           center != up;
 }
 
 
@@ -96,7 +92,14 @@ void main() {
             u_center.y + v_position.y * u_world_half_width * u_scale * u_aspect
         );
 
-        if(is_border(world_pos) && u_toggle_borders == 1){
+        // Calcular as derivadas em fluxo uniforme, antes das condições.
+        // O fator controla a espessura visual da borda em píxeis.
+        float border_width = 2.0;
+        vec2 pixel_x = dFdx(world_pos) * border_width;
+        vec2 pixel_y = dFdy(world_pos) * border_width;
+        bool border = is_border(world_pos, pixel_x, pixel_y);
+
+        if(border && u_toggle_borders == 1){
             // cor da linha entre sites
             color=vec4(1.0f);
         } else if(is_site_border(world_pos)==2){
